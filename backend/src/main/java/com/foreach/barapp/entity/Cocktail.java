@@ -36,4 +36,8 @@ public class Cocktail {
         inverseJoinColumns = @JoinColumn(name = "id_ingredient")
     )
     private List<Ingredient> ingredients = new ArrayList<>();
+
+    // On ajoute cette relation pour qu'en chargeant un Cocktail, on ait aussi automatiquement ses prix selon la taille
+    @OneToMany(mappedBy = "cocktail", cascade = CascadeType.ALL)
+    private List<CocktailTaille> prixTailles = new ArrayList<>();
 }
