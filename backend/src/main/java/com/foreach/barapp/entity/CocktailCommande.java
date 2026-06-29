@@ -3,6 +3,7 @@ package com.foreach.barapp.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Entité représentant un cocktail spécifique commandé au sein d'une commande (Ligne de commande).
@@ -22,6 +23,7 @@ public class CocktailCommande {
     @Column(name = "statut_preparation")
     private String statutPreparation; // On stockera : "Préparation des Ingrédients", "Assemblage", "Dressage", "Terminée"
 
+    @JsonIgnore // Empêche la boucle : Commande -> Ligne de Commande -> Commande -> ... dans le JSON
     @ManyToOne
     @JoinColumn(name = "id_commande")
     private Commande commande;

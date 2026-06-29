@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entité représentant une commande globale d'un client.
@@ -27,4 +29,8 @@ public class Commande {
 
     @Column(name = "numero_table")
     private Integer numeroTable;
+
+    // Ajout d'une relation pour qu'en appelant une Commande, Spring nous donne automatiquement la liste des cocktails dedans.
+    @OneToMany(mappedBy = "commande", cascade = CascadeType.ALL)
+    private List<CocktailCommande> cocktailsCommandes = new ArrayList<>();
 }
