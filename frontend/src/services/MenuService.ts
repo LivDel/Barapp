@@ -15,9 +15,39 @@ export const MenuService = {
     return response.data
   },
 
-  // Récupère la liste des catégories (ex: Alcoolisé, Sans alcool) pour les filtres
+  // Récupérer les catégories
   async getCategories(): Promise<Categorie[]> {
     const response = await api.get<Categorie[]>('/menu/categories')
+    return response.data
+  },
+
+  // Ajouter une catégorie (Admin)
+  async createCategorie(categorie: Partial<Categorie>): Promise<Categorie> {
+    const response = await api.post<Categorie>('/menu/categories', categorie)
+    return response.data
+  },
+
+  // Récupérer les tailles
+  async getTailles(): Promise<Taille[]> {
+    const response = await api.get<Taille[]>('/menu/tailles')
+    return response.data
+  },
+
+  // Ajouter une taille (Admin)
+  async createTaille(taille: Partial<Taille>): Promise<Taille> {
+    const response = await api.post<Taille>('/menu/tailles', taille)
+    return response.data
+  },
+
+  // Récupérer les ingrédients
+  async getIngredients(): Promise<Ingredient[]> {
+    const response = await api.get<Ingredient[]>('/menu/ingredients')
+    return response.data
+  },
+
+  // Ajouter un cocktail (Admin)
+  async createCocktail(cocktail: Partial<Cocktail>): Promise<Cocktail> {
+    const response = await api.post<Cocktail>('/menu/cocktails', cocktail)
     return response.data
   }
 }
