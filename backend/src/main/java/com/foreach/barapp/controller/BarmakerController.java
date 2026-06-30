@@ -1,7 +1,9 @@
 package com.foreach.barapp.controller;
 
+import com.foreach.barapp.entity.Barmaker;
 import com.foreach.barapp.entity.CocktailCommande;
 import com.foreach.barapp.entity.Commande;
+import com.foreach.barapp.dto.request.LoginRequestDto;
 import com.foreach.barapp.service.BarmakerService;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,5 +41,14 @@ public class BarmakerController {
     public CocktailCommande faireAvancerStatutCocktail(@PathVariable Integer idCocktailCommande) {
         // Le controller se contente d'appeler le service, toute l'intelligence métier y est cachée.
         return barmakerService.faireAvancerStatut(idCocktailCommande);
+    }
+
+    /**
+     * Authentifie le barman.
+     * Exemple : POST /api/barmaker/login
+     */
+    @PostMapping("/login")
+    public Barmaker login(@RequestBody LoginRequestDto request) {
+        return barmakerService.login(request.getIdentifiant(), request.getMotDePasse());
     }
 }

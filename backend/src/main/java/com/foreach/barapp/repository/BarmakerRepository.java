@@ -10,4 +10,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface BarmakerRepository extends JpaRepository<Barmaker, Integer> {
+    // Spring Data JPA génère automatiquement la requête SQL correspondant à ce nom de méthode !
+    java.util.Optional<Barmaker> findByIdentifiantAndMotDePasse(String identifiant, String motDePasse);
 }

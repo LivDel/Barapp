@@ -3,8 +3,10 @@ package com.foreach.barapp.service;
 import com.foreach.barapp.entity.CocktailCommande;
 import com.foreach.barapp.entity.Commande;
 import com.foreach.barapp.exception.ResourceNotFoundException;
-import com.foreach.barapp.repository.CocktailCommandeRepository;
 import com.foreach.barapp.repository.CommandeRepository;
+import com.foreach.barapp.repository.CocktailCommandeRepository;
+import com.foreach.barapp.repository.BarmakerRepository;
+import com.foreach.barapp.entity.Barmaker;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,11 +21,22 @@ public class BarmakerService {
 
     private final CommandeRepository commandeRepository;
     private final CocktailCommandeRepository cocktailCommandeRepository;
+    private final BarmakerRepository barmakerRepository;
 
     public BarmakerService(CommandeRepository commandeRepository,
-            CocktailCommandeRepository cocktailCommandeRepository) {
+            CocktailCommandeRepository cocktailCommandeRepository,
+            BarmakerRepository barmakerRepository) {
         this.commandeRepository = commandeRepository;
         this.cocktailCommandeRepository = cocktailCommandeRepository;
+        this.barmakerRepository = barmakerRepository;
+    }
+
+    /**
+     * Authentifie un Barmaker.
+     */
+    public Barmaker login(String identifiant, String motDePasse) {
+        return barmakerRepository.findByIdentifiantAndMotDePasse(identifiant, motDePasse)
+                .orElseThrow(() -> new ResourceNotFoundException("Identifiant ou mot de passe incorrect."));
     }
 
     /**
