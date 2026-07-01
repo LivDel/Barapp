@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.foreach.barapp.exception.ResourceNotFoundException;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -67,5 +68,58 @@ class ClientServiceTest {
         assertEquals("Commandée", result.getStatutGlobal());
         verify(commandeRepository, times(1)).save(any(Commande.class));
         verify(cocktailCommandeRepository, times(1)).save(any(CocktailCommande.class));
+    }
+
+    @Test
+    void testLancerCommande_CocktailNotFound() {
+        CommandeRequestDto request = new CommandeRequestDto();
+        CommandeRequestDto.CocktailCommandeDto ccDto = new CommandeRequestDto.CocktailCommandeDto();
+        ccDto.setIdCocktail(99);
+        request.setCocktails(Collections.singletonList(ccDto));
+
+        when(commandeRepository.save(any(Commande.class))).thenReturn(new Commande());
+        when(cocktailRepository.findById(99)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+            clientService.lancerCommande(request);
+        });
+    }
+
+    @Test
+    void testLancerCommande_TailleNotFound() {
+        CommandeRequestDto request = new CommandeRequestDto();
+        CommandeRequestDto.CocktailCommandeDto ccDto = new CommandeRequestDto.CocktailCommandeDto();
+        ccDto.setIdCocktail(1);
+        ccDto.setIdTaille(99);
+        request.setCocktails(Collections.singletonList(ccDto));
+
+        when(commandeRepository.save(any(Commande.class))).thenReturn(new Commande());
+        when(cocktailRepository.findById(1)).thenReturn(Optional.of(new Cocktail()));
+        when(tailleRepository.findById(99)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+            clientService.lancerCommande(request);
+        });
+    }
+
+    @Test
+    void testGetCommandeDetails_Success() {
+        Commande fakeCommande = new Commande();
+        fakeCommande.setIdCommande(10);
+        when(commandeRepository.findById(10)).thenReturn(Optional.of(fakeCommande));
+
+        Commande result = clientService.getCommandeDetails(10);
+
+        assertNotNull(result);
+        assertEquals(10, result.getIdCommande());
+    }
+
+    @Test
+    void testGetCommandeDetails_NotFound() {
+        when(commandeRepository.findById(99)).thenReturn(Optional.empty());
+
+        org.junit.jupiter.api.Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+            clientService.getCommandeDetails(99);
+        });
     }
 }
