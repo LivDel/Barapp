@@ -93,4 +93,94 @@ class MenuServiceTest {
         assertEquals("Alcoolisé", resultat.getLibelle());
         verify(categorieRepository, times(1)).save(any(Categorie.class));
     }
+
+    @Test
+    void testGetAllIngredients() {
+        com.foreach.barapp.entity.Ingredient ingredient = new com.foreach.barapp.entity.Ingredient();
+        ingredient.setNom("Menthe");
+        when(ingredientRepository.findAll()).thenReturn(Arrays.asList(ingredient));
+
+        List<com.foreach.barapp.entity.Ingredient> resultat = menuService.getAllIngredients();
+
+        assertEquals(1, resultat.size());
+        assertEquals("Menthe", resultat.get(0).getNom());
+        verify(ingredientRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testCreateIngredient() {
+        com.foreach.barapp.entity.Ingredient ingredient = new com.foreach.barapp.entity.Ingredient();
+        ingredient.setNom("Rhum");
+        when(ingredientRepository.save(any())).thenReturn(ingredient);
+
+        com.foreach.barapp.entity.Ingredient resultat = menuService.createIngredient(ingredient);
+
+        assertEquals("Rhum", resultat.getNom());
+        verify(ingredientRepository, times(1)).save(any());
+    }
+
+    @Test
+    void testGetAllTailles() {
+        com.foreach.barapp.entity.Taille taille = new com.foreach.barapp.entity.Taille();
+        taille.setLibelle("M");
+        when(tailleRepository.findAll()).thenReturn(Arrays.asList(taille));
+
+        List<com.foreach.barapp.entity.Taille> resultat = menuService.getAllTailles();
+
+        assertEquals(1, resultat.size());
+        assertEquals("M", resultat.get(0).getLibelle());
+        verify(tailleRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testCreateTaille() {
+        com.foreach.barapp.entity.Taille taille = new com.foreach.barapp.entity.Taille();
+        taille.setLibelle("L");
+        when(tailleRepository.save(any())).thenReturn(taille);
+
+        com.foreach.barapp.entity.Taille resultat = menuService.createTaille(taille);
+
+        assertEquals("L", resultat.getLibelle());
+        verify(tailleRepository, times(1)).save(any());
+    }
+
+    @Test
+    void testGetAllCocktails() {
+        com.foreach.barapp.entity.Cocktail cocktail = new com.foreach.barapp.entity.Cocktail();
+        cocktail.setNom("Mojito");
+        when(cocktailRepository.findAll()).thenReturn(Arrays.asList(cocktail));
+
+        List<com.foreach.barapp.entity.Cocktail> resultat = menuService.getAllCocktails();
+
+        assertEquals(1, resultat.size());
+        assertEquals("Mojito", resultat.get(0).getNom());
+        verify(cocktailRepository, times(1)).findAll();
+    }
+
+    @Test
+    void testCreateCocktail() {
+        // Préparer un cocktail
+        com.foreach.barapp.entity.Cocktail cocktail = new com.foreach.barapp.entity.Cocktail();
+        cocktail.setNom("Mojito");
+
+        // Préparer un prix pour une taille
+        com.foreach.barapp.entity.CocktailTaille ct = new com.foreach.barapp.entity.CocktailTaille();
+        ct.setPrix(8.5);
+        cocktail.setPrixTailles(Arrays.asList(ct));
+
+        com.foreach.barapp.entity.Cocktail savedCocktail = new com.foreach.barapp.entity.Cocktail();
+        savedCocktail.setIdCocktail(1);
+        savedCocktail.setNom("Mojito");
+        savedCocktail.setPrixTailles(Arrays.asList(ct));
+
+        when(cocktailRepository.save(any())).thenReturn(savedCocktail);
+
+        com.foreach.barapp.entity.Cocktail resultat = menuService.createCocktail(cocktail);
+
+        assertEquals("Mojito", resultat.getNom());
+        // On vérifie que cocktailRepository.save a été appelé
+        verify(cocktailRepository, times(1)).save(any());
+        // On vérifie que cocktailTailleRepository.save a bien été appelé pour chaque prixTaille
+        verify(cocktailTailleRepository, times(1)).save(any());
+    }
 }
