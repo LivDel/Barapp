@@ -1,5 +1,6 @@
 package com.foreach.barapp.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foreach.barapp.dto.request.CommandeRequestDto;
 import com.foreach.barapp.entity.Commande;
 import com.foreach.barapp.service.ClientService;
@@ -10,8 +11,11 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Collections;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,25 +29,44 @@ class ClientControllerTest {
     @MockBean
     private ClientService clientService;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void testLancerCommande() throws Exception {
-        Commande commande = new Commande();
-        commande.setIdCommande(1);
-        commande.setStatutGlobal("Commandée");
-        commande.setNumeroTable(5);
+        CommandeRequestDto request = new CommandeRequestDto();
+        request.setNumeroTable(5);
+        CommandeRequestDto.CocktailCommandeDto ccDto = new CommandeRequestDto.CocktailCommandeDto();
+        ccDto.setIdCocktail(1);
+        ccDto.setIdTaille(1);
+        request.setCocktails(Collections.singletonList(ccDto));
 
-        // On simule le service qui renvoie une commande créée avec succès
-        when(clientService.lancerCommande(any(CommandeRequestDto.class))).thenReturn(commande);
+        Commande responseCommande = new Commande();
+        responseCommande.setIdCommande(10);
+        responseCommande.setNumeroTable(5);
+        responseCommande.setStatutGlobal("Commandée");
 
-        // Le faux JSON envoyé par le client (VueJS)
-        String jsonRequest = "{ \"numeroTable\": 5, \"cocktails\": [ {\"idCocktail\": 1, \"idTaille\": 1} ] }";
+        when(clientService.lancerCommande(any())).thenReturn(responseCommande);
 
-        // Simulation de la requête HTTP
         mockMvc.perform(post("/api/client/commandes")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
-               .andExpect(status().isCreated()) // 201 Created
-               .andExpect(jsonPath("$.statutGlobal").value("Commandée"))
-               .andExpect(jsonPath("$.numeroTable").value(5));
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.idCommande").value(10))
+                .andExpect(jsonPath("$.statutGlobal").value("Commandée"));
+    }
+
+    @Test
+    void testGetStatutCommande() throws Exception {
+        Commande responseCommande = new Commande();
+        responseCommande.setIdCommande(10);
+        responseCommande.setStatutGlobal("En préparation");
+
+        when(clientService.getCommandeDetails(10)).thenReturn(responseCommande);
+
+        mockMvc.perform(get("/api/client/commandes/10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.idCommande").value(10))
+                .andExpect(jsonPath("$.statutGlobal").value("En préparation"));
     }
 }
