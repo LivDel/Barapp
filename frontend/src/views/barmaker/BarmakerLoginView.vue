@@ -1,23 +1,23 @@
 <template>
   <div class="login-page">
-    <div class="login-card">
-      <h1>Espace Barman 🔐</h1>
-      <p>Veuillez vous identifier pour accéder au tableau de bord.</p>
+    <div class="login-card glass-panel">
+      <div class="icon-wrapper">🍸</div>
+      <h1>Espace Barman</h1>
+      <p class="subtitle">Veuillez vous identifier pour accéder au tableau de bord.</p>
 
-      <!-- Le @submit.prevent empêche la page de se recharger (comportement par défaut d'un form HTML) -->
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
           <label for="identifiant">Identifiant</label>
-          <input type="text" id="identifiant" v-model="identifiant" required placeholder="ex: barmaker1" />
+          <input type="text" id="identifiant" class="glass-input" v-model="identifiant" required placeholder="ex: barmaker1" />
         </div>
 
         <div class="form-group">
           <label for="password">Mot de passe</label>
-          <input type="password" id="password" v-model="motDePasse" required />
+          <input type="password" id="password" class="glass-input" v-model="motDePasse" required placeholder="••••••••" />
         </div>
 
         <button type="submit" class="btn-login" :disabled="loading">
-          {{ loading ? 'Connexion en cours...' : 'Se connecter' }}
+          {{ loading ? 'Connexion en cours...' : 'Se connecter ❯' }}
         </button>
       </form>
 
@@ -43,15 +43,9 @@ const handleLogin = async () => {
   errorMsg.value = ''
   
   try {
-    // 1. On appelle notre API Java
     const barmaker = await BarmakerService.login(identifiant.value, motDePasse.value)
-    
-    // 2. Si c'est un succès, on mémorise le barman dans le store global
     setBarmakerUser(barmaker.identifiant, barmaker.nom)
-    
-    // 3. On le redirige vers sa page sécurisée
     router.push('/barmaker/dashboard')
-    
   } catch (error) {
     errorMsg.value = "Identifiants incorrects. Veuillez réessayer."
   } finally {
@@ -65,28 +59,51 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: #2f3542; /* Fond sombre pour bien marquer la différence avec le côté client clair */
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.glass-panel {
+  background: rgba(58, 29, 110, 0.45);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
 }
 
 .login-card {
-  background: white;
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+
+.icon-wrapper {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px auto;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--grad-sunset, linear-gradient(135deg, #ff4d6d 0%, #ff8c00 100%));
+  color: white;
+  font-size: 1.8rem;
+  box-shadow: 0 4px 15px rgba(255, 77, 109, 0.3);
 }
 
 h1 {
-  color: #2f3542;
-  margin-bottom: 10px;
+  font-family: var(--font-display, "Fraunces", serif);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--foreground, #ffffff);
+  margin: 0 0 8px 0;
 }
 
-p {
-  color: #57606f;
-  margin-bottom: 30px;
+.subtitle {
+  color: var(--muted-foreground, #a4b0be);
+  font-size: 0.95rem;
+  margin: 0 0 30px 0;
 }
 
 .form-group {
@@ -96,44 +113,72 @@ p {
 
 label {
   display: block;
-  font-weight: bold;
-  color: #2f3542;
-  margin-bottom: 5px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted-foreground, #a4b0be);
+  margin-bottom: 8px;
+  padding-left: 4px;
 }
 
-input {
+.glass-input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #dfe4ea;
-  border-radius: 6px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: white;
   font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(255, 77, 109, 0.5);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(255, 77, 109, 0.1);
+}
+
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
 .btn-login {
-  background: #ff4757; /* Rouge dynamique */
+  background: var(--grad-sunset, linear-gradient(135deg, #ff4d6d 0%, #ff8c00 100%));
   color: white;
   border: none;
-  padding: 15px;
+  padding: 16px;
   width: 100%;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 14px;
+  font-size: 1.05rem;
   font-weight: bold;
   cursor: pointer;
-  transition: background 0.2s;
+  margin-top: 10px;
+  box-shadow: 0 6px 15px rgba(255, 77, 109, 0.25);
+  transition: transform 0.1s, opacity 0.3s, box-shadow 0.3s;
 }
 
-.btn-login:hover {
-  background: #ff6b81;
+.btn-login:hover:not(:disabled) {
+  box-shadow: 0 8px 20px rgba(255, 77, 109, 0.35);
+}
+
+.btn-login:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .btn-login:disabled {
-  background: #a4b0be;
+  opacity: 0.6;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .error-msg {
+  background: rgba(255, 71, 87, 0.15);
   color: #ff4757;
-  margin-top: 20px;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 24px;
+  font-size: 0.9rem;
   font-weight: bold;
+  border: 1px solid rgba(255, 71, 87, 0.3);
 }
 </style>
