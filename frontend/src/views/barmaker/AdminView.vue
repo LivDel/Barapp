@@ -41,9 +41,22 @@
               </div>
               
               <div class="form-group">
-                <label>Prix de base (€)</label>
-                <input type="number" step="0.1" v-model="newCocktail.prix" required placeholder="ex: 8.5" />
+                <label>Prix de base (Sert de calcul) (€)</label>
+                <input type="number" step="0.1" v-model="basePrice" @input="calculatePrices" required placeholder="ex: 8.5" />
               </div>
+            </div>
+
+            <div v-if="tailles.length > 0" class="form-group prices-box">
+               <label>Prix par taille (Auto-calculés, modifiables) :</label>
+               <div class="sizes-grid">
+                  <div class="size-input" v-for="t in tailles" :key="t.idTaille">
+                     <span>{{ t.libelle }} :</span>
+                     <div class="size-price-wrapper">
+                       <input type="number" step="0.1" v-model="pricesPerSize[t.idTaille]" placeholder="Prix" />
+                       <span class="currency">€</span>
+                     </div>
+                  </div>
+               </div>
             </div>
 
             <div class="form-group">
@@ -130,11 +143,13 @@ import type { Categorie, Taille, Cocktail } from '../../types'
 
 const router = useRouter()
 const categories = ref<Categorie[]>([])
+const tailles = ref<Taille[]>([])
 const openSection = ref<string>('cocktail') // Ouvre "cocktail" par défaut
 
 onMounted(async () => {
   try {
     categories.value = await MenuService.getCategories()
+    tailles.value = await MenuService.getTailles()
   } catch (error) {
     console.error(error)
   }
@@ -187,26 +202,54 @@ const submitTaille = async () => {
 }
 
 // --- GESTION COCKTAIL ---
+const basePrice = ref<number | ''>('')
+const pricesPerSize = ref<Record<number, number>>({})
+
 const newCocktail = ref({
   nom: '',
   description: '',
-  prix: '',
   image: '',
   categorie: '' as any
 })
 const loadingCocktail = ref(false)
+
+const calculatePrices = () => {
+  if (basePrice.value === '' || isNaN(Number(basePrice.value))) return;
+  const base = Number(basePrice.value);
+  
+  tailles.value.forEach(t => {
+     let offset = 0;
+     const nomLow = t.libelle.toLowerCase();
+     if (nomLow.includes('s ') || nomLow === 's' || nomLow.includes('small') || nomLow.includes('demi')) offset = -1.5;
+     else if (nomLow.includes('l ') || nomLow === 'l' || nomLow.includes('large') || nomLow.includes('pinte')) offset = +2.0;
+     else if (nomLow.includes('xl') || nomLow.includes('pichet') || nomLow.includes('girafe')) offset = +4.0;
+     
+     pricesPerSize.value[t.idTaille] = Number((base + offset).toFixed(2));
+  });
+}
+
 const submitCocktail = async () => {
   loadingCocktail.value = true
   try {
+    const prixTailles = tailles.value
+      .filter(t => pricesPerSize.value[t.idTaille] !== undefined && pricesPerSize.value[t.idTaille] > 0)
+      .map(t => ({
+        taille: t,
+        prix: pricesPerSize.value[t.idTaille]
+      }));
+
     const cocktailToSave: Partial<Cocktail> = {
       nom: newCocktail.value.nom,
       description: newCocktail.value.description,
       image: newCocktail.value.image,
-      categorie: newCocktail.value.categorie
+      categorie: newCocktail.value.categorie,
+      prixTailles: prixTailles as any
     }
     await MenuService.createCocktail(cocktailToSave)
     alert(`Cocktail "${cocktailToSave.nom}" ajouté avec succès à la carte !`)
-    newCocktail.value = { nom: '', description: '', prix: '', image: '', categorie: '' }
+    newCocktail.value = { nom: '', description: '', image: '', categorie: '' }
+    basePrice.value = ''
+    pricesPerSize.value = {}
   } catch (error) {
     alert("Erreur lors de l'ajout du cocktail.")
   } finally {
@@ -449,6 +492,54 @@ textarea {
 select option {
   background: #2a164f;
   color: white;
+}
+
+.sizes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.size-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.size-input span {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.size-price-wrapper {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0 10px;
+}
+
+.size-price-wrapper input {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  width: 100%;
+}
+
+.size-price-wrapper input:focus {
+  outline: none;
+  background: transparent;
+}
+
+.size-price-wrapper .currency {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: bold;
 }
 
 .btn-submit {
