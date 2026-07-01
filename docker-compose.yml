@@ -1,0 +1,46 @@
+# Version de syntaxe de Docker Compose
+version: '3.8'
+
+# Déclaration de tous nos conteneurs (services)
+services:
+
+  # 1. NOTRE BASE DE DONNÉES
+  db:
+    # On utilise l'image officielle PostgreSQL ultra-légère (Alpine)
+    image: postgres:15-alpine
+    # Les variables d'environnement obligatoires pour initialiser la DB
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: barapp
+    # On expose le port 5432 de la DB vers notre PC (pratique pour y accéder avec PGAdmin)
+    ports:
+      - "5432:5432"
+    # TRÈS IMPORTANT : On dit à Docker d'exécuter notre script SQL au démarrage de la base !
+    volumes:
+      - ./data.sql:/docker-entrypoint-initdb.d/data.sql
+
+  # 2. NOTRE API (BACKEND)
+  backend:
+    # On construira l'image à partir du Dockerfile dans le dossier "backend"
+    build: ./backend
+    # Le backend a besoin que la base de données (db) soit lancée AVANT lui
+    depends_on:
+      - db
+    # On expose le port 8080 pour que le Frontend puisse l'attaquer de l'extérieur
+    ports:
+      - "8080:8080"
+    # On surcharge la variable d'environnement pour que Spring Boot trouve le conteneur "db" au lieu de "localhost"
+    environment:
+      - DB_HOST=db
+
+  # 3. NOTRE INTERFACE VISUELLE (FRONTEND)
+  frontend:
+    # On construira l'image à partir du Dockerfile dans le dossier "frontend"
+    build: ./frontend
+    # On expose le site sur le port 80 de notre PC (le port web classique, accessible via http://localhost)
+    ports:
+      - "80:80"
+    # Le frontend a besoin que le backend soit prêt
+    depends_on:
+      - backend
