@@ -1,5 +1,11 @@
 <template>
   <div class="admin-page">
+    <!-- Notification Toast -->
+    <div class="notification-toast" :class="[notification.type, { 'is-visible': notification.visible }]">
+      <span class="icon">{{ notification.type === 'success' ? '✅' : '❌' }}</span>
+      <span class="message">{{ notification.message }}</span>
+    </div>
+
     <!-- Header -->
     <header class="header">
       <div class="header-inner glass-panel">
@@ -146,6 +152,20 @@ const categories = ref<Categorie[]>([])
 const tailles = ref<Taille[]>([])
 const openSection = ref<string>('cocktail') // Ouvre "cocktail" par défaut
 
+// --- NOTIFICATIONS ---
+const notification = ref<{ message: string, type: 'success' | 'error', visible: boolean }>({
+  message: '',
+  type: 'success',
+  visible: false
+})
+
+const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+  notification.value = { message, type, visible: true }
+  setTimeout(() => {
+    notification.value.visible = false
+  }, 3500)
+}
+
 onMounted(async () => {
   try {
     categories.value = await MenuService.getCategories()
@@ -176,10 +196,10 @@ const submitCategorie = async () => {
   try {
     const created = await MenuService.createCategorie(newCategorie.value)
     categories.value.push(created)
-    alert(`Catégorie "${created.libelle}" ajoutée avec succès !`)
+    showNotification(`Catégorie "${created.libelle}" ajoutée avec succès !`)
     newCategorie.value.libelle = ''
   } catch (error) {
-    alert("Erreur lors de l'ajout.")
+    showNotification("Erreur lors de l'ajout de la catégorie.", 'error')
   } finally {
     loadingCat.value = false
   }
@@ -192,10 +212,10 @@ const submitTaille = async () => {
   loadingTaille.value = true
   try {
     const created = await MenuService.createTaille(newTaille.value)
-    alert(`Taille "${created.libelle}" ajoutée avec succès !`)
+    showNotification(`Taille "${created.libelle}" ajoutée avec succès !`)
     newTaille.value.libelle = ''
   } catch (error) {
-    alert("Erreur lors de l'ajout.")
+    showNotification("Erreur lors de l'ajout de la taille.", 'error')
   } finally {
     loadingTaille.value = false
   }
@@ -246,12 +266,12 @@ const submitCocktail = async () => {
       prixTailles: prixTailles as any
     }
     await MenuService.createCocktail(cocktailToSave)
-    alert(`Cocktail "${cocktailToSave.nom}" ajouté avec succès à la carte !`)
+    showNotification(`Cocktail "${cocktailToSave.nom}" ajouté avec succès à la carte !`)
     newCocktail.value = { nom: '', description: '', image: '', categorie: '' }
     basePrice.value = ''
     pricesPerSize.value = {}
   } catch (error) {
-    alert("Erreur lors de l'ajout du cocktail.")
+    showNotification("Erreur lors de l'ajout du cocktail.", 'error')
   } finally {
     loadingCocktail.value = false
   }
@@ -578,5 +598,44 @@ select option {
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* TOAST NOTIFICATION */
+.notification-toast {
+  position: fixed;
+  bottom: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 20, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 12px 24px;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  z-index: 1000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 0.95rem;
+}
+
+.notification-toast.is-visible {
+  bottom: 40px;
+}
+
+.notification-toast.success {
+  border-bottom: 3px solid #2ecc71;
+}
+
+.notification-toast.error {
+  border-bottom: 3px solid #ff4d6d;
+}
+
+.notification-toast .icon {
+  font-size: 1.2rem;
 }
 </style>
