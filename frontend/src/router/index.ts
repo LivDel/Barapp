@@ -25,7 +25,7 @@ const router = createRouter({
       component: () => import('../views/client/CartView.vue')
     },
     {
-      path: '/tracking/:id',
+      path: '/tracking/:id?',
       name: 'tracking',
       component: () => import('../views/client/OrderTrackingView.vue')
     },
@@ -55,22 +55,20 @@ const router = createRouter({
 })
 
 // GARDIEN DE ROUTE (Navigation Guard)
-// Avant chaque changement de page, Vue Router passe par cette fonction.
-// Cela permet de bloquer l'accès aux pages du barman si l'utilisateur n'est pas connecté !
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
   // Si la route visée nécessite d'être authentifié
   if (to.meta.requiresAuth) {
     // On vérifie dans le store global si on a un barmaker connecté
     if (!store.barmakerUser) {
       // Pas connecté ? Hop, on le renvoie brutalement à la page de connexion.
-      next({ name: 'barmaker-login' })
+      return { name: 'barmaker-login' }
     } else {
       // Connecté ? On le laisse passer.
-      next()
+      return true
     }
   } else {
     // Si la route est publique (comme le menu client), on laisse passer
-    next()
+    return true
   }
 })
 

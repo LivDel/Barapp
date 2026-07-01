@@ -1,35 +1,101 @@
 @import './base.css';
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Fond global du site pour encadrer l'app (sur PC) */
+  background: #0f0524;
 }
 
-a,
-.green {
+a {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
+  color: var(--primary);
+  transition: 0.3s;
 }
 
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
+a:hover {
+  color: var(--accent);
+}
+
+button {
+  font-family: var(--font-body);
+}
+
+/* L'application elle-même simule un écran de téléphone */
+.mobile-frame {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  height: 100dvh;
+  background-color: var(--background);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 600px) {
+  .mobile-frame {
+    height: 860px;
+    border-radius: 2.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
 
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
+/* Bulles décoratives en fond */
+.festive-blobs {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
 
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+.blob-purple {
+  position: absolute;
+  top: -40px;
+  left: -64px;
+  width: 256px;
+  height: 256px;
+  border-radius: 50%;
+  background-color: rgba(168, 54, 255, 0.4);
+  filter: blur(60px);
+}
+
+.blob-red {
+  position: absolute;
+  top: 25%;
+  right: -30%;
+  width: 288px;
+  height: 288px;
+  border-radius: 50%;
+  background-color: rgba(255, 59, 92, 0.25);
+  filter: blur(60px);
+}
+
+.blob-yellow {
+  position: absolute;
+  bottom: 40px;
+  left: 33%;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background-color: rgba(255, 194, 60, 0.2);
+  filter: blur(60px);
+}
+
+/* Conteneur principal scrollable */
+.screen-content {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.screen-content::-webkit-scrollbar {
+  display: none;
 }

@@ -1,67 +1,110 @@
 <template>
   <div class="dashboard-page">
     <header class="header">
-      <div class="header-top">
-        <h1>Tableau de Bord 📋</h1>
-        <div class="user-info">
-          <span>Connecté : {{ store.barmakerUser?.nom }}</span>
-          <button @click="logout" class="btn-logout">Déconnexion</button>
+      <div class="header-inner glass-panel">
+        <div class="header-left">
+          <span class="icon-wrapper">🍸</span>
+          <div class="header-text">
+            <span class="title">Poste Barmaker</span>
+            <span class="subtitle">{{ commandes.length }} commandes en attente</span>
+          </div>
+        </div>
+        
+        <div class="barmaker-nav">
+          <button class="nav-btn active">Commandes</button>
+          <button class="nav-btn" @click="router.push('/barmaker/admin')">Carte</button>
+          <button @click="logout" class="btn-logout" aria-label="Déconnexion">
+            <span class="logout-icon">🚪</span>
+          </button>
         </div>
       </div>
-
-      <!-- Menu de navigation propre au Barman -->
-      <nav class="barmaker-nav">
-        <button class="nav-btn active">Commandes en cours</button>
-        <button class="nav-btn" @click="router.push('/barmaker/admin')">Gérer la Carte (Admin)</button>
-      </nav>
     </header>
 
     <div v-if="loading" class="loading">
       Récupération des commandes... ⏳
     </div>
 
-    <!-- S'il n'y a aucune commande en attente -->
     <div v-else-if="commandes.length === 0" class="empty-state">
       Aucune commande en attente. C'est l'heure de la pause ! ☕
     </div>
 
-    <!-- La grille affichant toutes les commandes actives -->
-    <div v-else class="orders-grid">
-      <!-- On boucle sur chaque commande -->
-      <div v-for="commande in commandes" :key="commande.idCommande" class="order-card">
-        <div class="order-header">
-          <h2>Table N°{{ commande.numeroTable }}</h2>
-          <span class="order-id">Cmd #{{ commande.idCommande }}</span>
+    <div v-else class="dashboard-content">
+      <!-- HORIZONTAL SCROLL LIST -->
+      <div class="orders-scroll-container">
+        <button 
+          v-for="commande in commandes" 
+          :key="commande.idCommande"
+          class="order-tab glass-panel"
+          :class="{ active: selectedOrderId === commande.idCommande }"
+          @click="selectedOrderId = commande.idCommande"
+        >
+          <div class="tab-top">
+            <span class="order-id">BAR-{{ commande.idCommande }}</span>
+          </div>
+          <p class="table-name">Table {{ commande.numeroTable }}</p>
+          
+          <div class="progress-track">
+            <div class="progress-fill" :style="{ width: getOrderProgress(commande) + '%' }"></div>
+          </div>
+          <p class="progress-text">{{ getOrderProgress(commande) }}%</p>
+        </button>
+      </div>
+
+      <!-- SELECTED ORDER DETAILS -->
+      <div class="order-details" v-if="selectedOrder">
+        <div class="details-header">
+          <h3>BAR-{{ selectedOrder.idCommande }} · Table {{ selectedOrder.numeroTable }}</h3>
+          <span class="cocktails-count">{{ selectedOrder.cocktailsCommandes?.length || 0 }} cocktails</span>
         </div>
 
-        <ul class="cocktails-list">
-          <!-- On boucle sur chaque verre de la commande -->
-          <li v-for="cc in commande.cocktailsCommandes" :key="cc.idCocktailCommande" class="cocktail-item">
-
-            <div class="cocktail-info">
-              <strong>{{ cc.cocktail?.nom }}</strong>
-              <div class="status-badge" :class="getBadgeClass(cc.statutPreparation)">
-                {{ cc.statutPreparation }}
+        <div class="cocktails-list">
+          <div 
+            v-for="cc in sortedCocktails(selectedOrder.cocktailsCommandes)" 
+            :key="cc.idCocktailCommande"
+            class="cocktail-card glass-panel"
+          >
+            <div class="cocktail-header">
+              <div class="cocktail-name-group">
+                <span class="cocktail-name">{{ cc.cocktail?.nom }}</span>
+                <span class="cocktail-size">{{ cc.taille?.libelle?.charAt(0) || 'M' }}</span>
               </div>
+              <span v-if="cc.statutPreparation === 'Terminée'" class="status-done">✅ Prêt</span>
             </div>
 
-            <!-- Le bouton pour faire avancer le statut -->
-            <!-- On le cache si le verre est déjà "Terminée" -->
-            <button v-if="cc.statutPreparation !== 'Terminée'" @click="avancerStatut(cc.idCocktailCommande)"
-              class="btn-action">
-              Étape suivante ➡️
-            </button>
-            <span v-else class="done-mark">✅ Fini</span>
+            <!-- Segments de progression -->
+            <div class="stages-bar">
+              <div 
+                v-for="(stage, index) in STAGES" 
+                :key="index"
+                class="stage-segment"
+                :class="{ 'is-active': getStageIndex(cc.statutPreparation) >= index }"
+              ></div>
+            </div>
 
-          </li>
-        </ul>
+            <div class="cocktail-actions">
+              <div class="current-stage-info">
+                <span class="stage-label">Étape actuelle</span>
+                <span class="stage-value">{{ cc.statutPreparation }}</span>
+              </div>
+
+              <button 
+                class="btn-advance" 
+                :class="{ 'is-done': cc.statutPreparation === 'Terminée' }"
+                :disabled="cc.statutPreparation === 'Terminée'"
+                @click="avancerStatut(cc.idCocktailCommande)"
+              >
+                {{ cc.statutPreparation === 'Terminée' ? 'Terminé' : 'Étape suivante ❯' }}
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { BarmakerService } from '../../services/BarmakerService'
 import { store, logoutBarmaker } from '../../store'
@@ -72,10 +115,55 @@ const commandes = ref<Commande[]>([])
 const loading = ref(true)
 let refreshInterval: number | undefined
 
-// Cette fonction appelle notre API Java pour récupérer la liste des commandes.
+const selectedOrderId = ref<number | null>(null)
+
+const STAGES = [
+  'En attente',
+  'Préparation des Ingrédients',
+  'Assemblage',
+  'Dressage',
+  'Terminée'
+];
+
+const getStageIndex = (statut: string) => {
+  return STAGES.indexOf(statut);
+}
+
+const getOrderProgress = (commande: Commande) => {
+  if (!commande.cocktailsCommandes || commande.cocktailsCommandes.length === 0) return 0;
+  const totalStages = (STAGES.length - 1) * commande.cocktailsCommandes.length;
+  const currentTotal = commande.cocktailsCommandes.reduce((acc, cc) => {
+    const idx = getStageIndex(cc.statutPreparation);
+    return acc + (idx >= 0 ? idx : 0);
+  }, 0);
+  return totalStages === 0 ? 0 : Math.round((currentTotal / totalStages) * 100);
+}
+
+const selectedOrder = computed(() => {
+  if (!selectedOrderId.value) return commandes.value[0] || null;
+  return commandes.value.find(c => c.idCommande === selectedOrderId.value) || commandes.value[0] || null;
+})
+
+const sortedCocktails = (cocktails: any[]) => {
+  if (!cocktails) return [];
+  // On trie par ID pour garantir que l'ordre reste toujours le même
+  // même si le backend renvoie la liste dans le désordre après une mise à jour JPA
+  return [...cocktails].sort((a, b) => a.idCocktailCommande - b.idCocktailCommande);
+}
+
 const fetchCommandes = async () => {
   try {
-    commandes.value = await BarmakerService.getCommandesATraiter()
+    const freshCommandes = await BarmakerService.getCommandesATraiter()
+    commandes.value = freshCommandes
+    
+    // Auto-select first order if none selected or if selected order disappeared
+    if (freshCommandes.length > 0) {
+      if (!selectedOrderId.value || !freshCommandes.find(c => c.idCommande === selectedOrderId.value)) {
+        selectedOrderId.value = freshCommandes[0].idCommande
+      }
+    } else {
+      selectedOrderId.value = null
+    }
   } catch (error) {
     console.error("Erreur de récupération des commandes", error)
   } finally {
@@ -85,210 +173,363 @@ const fetchCommandes = async () => {
 
 onMounted(() => {
   fetchCommandes()
-
-  // Même principe de 'Polling' (interrogation) que pour le client.
-  // Le Dashboard se rafraîchit tout seul toutes les 3 secondes pour voir les nouvelles commandes arriver "en direct".
   refreshInterval = window.setInterval(fetchCommandes, 3000)
 })
 
-// ettoyer le setInterval quand on quitte la page.
 onUnmounted(() => {
   if (refreshInterval) clearInterval(refreshInterval)
 })
-
-// --- ACTIONS ---
 
 const logout = () => {
   logoutBarmaker()
   router.push('/barmaker/login')
 }
 
-// Fonction métier principale du Barmaker !
 const avancerStatut = async (idCocktailCommande: number) => {
   try {
-    // 1. On appelle l'API PUT pour modifier le statut en Base de Données
     await BarmakerService.faireAvancerStatut(idCocktailCommande)
-
-    // 2. On rafraîchit immédiatement la liste visuelle pour que le barman voie l'évolution
     await fetchCommandes()
   } catch (error) {
     alert("Impossible de mettre à jour le statut.")
-  }
-}
-
-// --- LOGIQUE VISUELLE ---
-
-const getBadgeClass = (statut: string) => {
-  switch (statut) {
-    case 'En attente': return 'badge-waiting'
-    case 'Préparation des Ingrédients': return 'badge-step1'
-    case 'Assemblage': return 'badge-step2'
-    case 'Dressage': return 'badge-step3'
-    case 'Terminée': return 'badge-ready'
-    default: return ''
   }
 }
 </script>
 
 <style scoped>
 .dashboard-page {
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
+/* HEADER */
 .header {
-  margin-bottom: 20px;
+  padding: 20px 16px 12px 16px;
+  background: transparent;
+  flex-shrink: 0;
 }
 
-.header-top {
+.glass-panel {
+  background: rgba(58, 29, 110, 0.45);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+}
+
+.header-inner {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--card);
-  color: var(--card-foreground);
-  padding: 15px;
-  border-radius: var(--radius);
-  margin-bottom: 15px;
-  border: 1px solid var(--glass-border);
+  padding: 12px 16px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-h1 { margin: 0; font-size: 1.5rem; color: var(--foreground); }
-
-.user-info {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
 }
 
-.btn-logout {
-  background: var(--destructive);
-  color: var(--destructive-foreground);
-  border: none;
-  padding: 8px 15px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
+.icon-wrapper {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--grad-sunset);
+  color: white;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.title {
+  font-family: var(--font-display, "Fraunces", serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.subtitle {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin-top: 2px;
 }
 
 .barmaker-nav {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  align-items: center;
 }
 
 .nav-btn {
-  padding: 10px 20px;
-  background: var(--muted);
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.8rem;
   color: var(--muted-foreground);
-  transition: background 0.2s;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.nav-btn:hover { background: var(--secondary); }
-.nav-btn.active { background: var(--primary); color: var(--primary-foreground); }
+.nav-btn.active {
+  background: var(--grad-sunset);
+  color: white;
+  border-color: transparent;
+}
 
-.grid-commandes {
+.btn-logout {
+  background: rgba(255, 59, 92, 0.15);
+  border: 1px solid rgba(255, 59, 92, 0.3);
+  color: #ff4d6d;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
   display: grid;
-  gap: 20px;
-  grid-template-columns: 1fr;
+  place-items: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.commande-card {
-  background: var(--card);
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius);
-  padding: 20px;
+/* HORIZONTAL SCROLL */
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
-.commande-header {
+.orders-scroll-container {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 0 16px 16px 16px;
+  flex-shrink: 0;
+  scrollbar-width: none; /* Firefox */
+}
+.orders-scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome */
+}
+
+.order-tab {
+  width: 170px;
+  flex-shrink: 0;
+  padding: 12px;
+  border-radius: 16px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.order-tab.active {
+  background: rgba(58, 29, 110, 0.65);
+  border-color: rgba(255, 59, 92, 0.4);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.tab-top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.order-id {
+  font-family: monospace;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--foreground);
+}
+
+.table-name {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  margin: 0 0 10px 0;
+}
+
+.progress-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--grad-sunset);
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 0.68rem;
+  color: #ff4d6d;
+  margin: 0;
+  font-weight: bold;
+}
+
+/* ORDER DETAILS */
+.order-details {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 20px 16px;
+}
+
+.details-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  border-bottom: 1px solid var(--glass-border);
-  padding-bottom: 10px;
+  margin-bottom: 16px;
 }
 
-.commande-header h2 { margin: 0; color: var(--foreground); }
-
-.status-badge {
-  padding: 5px 10px;
-  border-radius: 12px;
-  font-weight: bold;
-  font-size: 0.9rem;
+.details-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--foreground);
 }
 
-.status-badge.status-commandee { background: var(--accent); color: var(--accent-foreground); }
-.status-badge.status-encours { background: var(--primary); color: white; }
+.cocktails-count {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--muted-foreground);
+}
 
 .cocktails-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
 }
 
-.cocktail-item {
+.cocktail-card {
+  padding: 16px;
+}
+
+.cocktail-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--glass-bg);
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid var(--glass-border);
+  margin-bottom: 16px;
 }
 
-.cocktail-info strong {
+.cocktail-name-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cocktail-name {
   font-size: 1.1rem;
+  font-weight: bold;
   color: var(--foreground);
 }
-.cocktail-info div {
-  font-size: 0.9rem;
-  color: var(--muted-foreground);
+
+.cocktail-size {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ff4d6d;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: bold;
 }
 
-.etat-pill {
-  display: inline-block;
-  padding: 3px 8px;
-  background: var(--muted);
-  color: var(--muted-foreground);
+.status-done {
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+  padding: 2px 8px;
   border-radius: 10px;
-  font-size: 0.8rem;
-  margin-top: 5px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.stages-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.stage-segment {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  transition: background 0.3s ease;
+}
+
+.stage-segment.is-active {
+  background: var(--grad-sunset);
 }
 
 .cocktail-actions {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
-.btn-action {
-  background: var(--primary);
+.current-stage-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.stage-label {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.stage-value {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-advance {
+  background: var(--grad-sunset);
   color: white;
   border: none;
-  padding: 8px 12px;
-  border-radius: 6px;
+  border-radius: 16px;
+  padding: 0 20px;
+  height: 52px;
   font-weight: bold;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: transform 0.1s;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(255, 59, 92, 0.3);
+  transition: transform 0.1s, opacity 0.3s;
 }
 
-.btn-action:active {
+.btn-advance:active:not(:disabled) {
   transform: scale(0.95);
-  /* Petit effet d'enfoncement au clic */
 }
 
-.done-mark {
-  color: #2ed573;
-  font-weight: bold;
+.btn-advance.is-done {
+  opacity: 0.4;
+  box-shadow: none;
+  cursor: not-allowed;
 }
 
 .loading,
 .empty-state {
   text-align: center;
   padding: 40px;
-  font-size: 1.2rem;
-  color: #747d8c;
+  font-size: 1.1rem;
+  color: var(--muted-foreground);
 }
 </style>

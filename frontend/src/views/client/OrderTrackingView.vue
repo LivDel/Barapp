@@ -1,43 +1,76 @@
 <template>
-  <div class="tracking-page">
-    <header class="header">
-      <h1>Suivi de Commande 📦</h1>
-      <p v-if="commande">Commande N°{{ commande.idCommande }} - Table {{ commande.numeroTable }}</p>
-    </header>
+  <div class="tracking-wrapper" :class="bgClass">
+    <div class="tracking-page">
+      <header class="header">
+        <div class="header-subtitle">COMMANDE</div>
+        <h1 class="header-title" v-if="commande">BAR-{{ commande.idCommande }}</h1>
+        <p class="header-time" v-if="commande">Passée à {{ formatTime(commande.dateHeureCreation) }}</p>
+      </header>
 
-    <div v-if="loading" class="loading">
-      Recherche de votre commande... ⏳
-    </div>
-
-    <div v-else-if="error" class="error-msg">
-      {{ error }}
-    </div>
-
-    <div v-else-if="commande" class="tracking-content">
-      <!-- Statut Global de la Commande -->
-      <div class="global-status-card" :class="statusGlobalClass">
-        <h2>État général : {{ commande.statutGlobal }}</h2>
-        <p v-if="commande.statutGlobal === 'Commandée'">Votre commande est en attente de prise en charge.</p>
-        <p v-else-if="commande.statutGlobal === 'En cours de préparation'">Le barman prépare vos boissons ! 🍸</p>
-        <p v-else-if="commande.statutGlobal === 'Terminée'">C'est prêt ! Un serveur vous l'apporte. 🎉</p>
+      <div v-if="loading" class="loading">
+        Recherche de votre commande... ⏳
       </div>
 
-      <!-- Détail de l'avancement par verre -->
-      <h3>Détail de vos boissons</h3>
-      <ul class="cocktails-list">
-        <!-- On boucle sur la liste générée par l'API (grâce au @OneToMany Java) -->
-        <li v-for="cc in commande.cocktailsCommandes" :key="cc.idCocktailCommande" class="cocktail-item">
-          <div class="cocktail-info">
-            <strong>{{ cc.cocktail?.nom || 'Cocktail inconnu' }}</strong>
-          </div>
-          <div class="status-badge" :class="getBadgeClass(cc.statutPreparation)">
-            {{ cc.statutPreparation }}
-          </div>
-        </li>
-      </ul>
+      <div v-else-if="error" class="error-msg">
+        {{ error }}
+      </div>
 
-      <div class="auto-refresh-notice">
-        Actualisation automatique en temps réel ⏱️
+      <div v-else-if="commande" class="tracking-content">
+        
+        <!-- Timeline Card -->
+        <div class="glass-card timeline-card">
+          <div class="timeline">
+            <!-- Step 1 -->
+            <div class="timeline-step" :class="{ active: step >= 1 }">
+              <div class="step-icon">
+                <span v-if="step >= 1">✓</span>
+              </div>
+              <div class="step-content">
+                <div class="step-title">Commandée</div>
+              </div>
+              <div class="timeline-line" :class="{ filled: step >= 2 }"></div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="timeline-step" :class="{ active: step >= 2 }">
+              <div class="step-icon">
+                <span v-if="step >= 2">✓</span>
+              </div>
+              <div class="step-content">
+                <div class="step-title">En cours de préparation</div>
+              </div>
+              <div class="timeline-line" :class="{ filled: step >= 3 }"></div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="timeline-step" :class="{ active: step >= 3 }">
+              <div class="step-icon party">
+                <span v-if="step >= 3">🎉</span>
+              </div>
+              <div class="step-content">
+                <div class="step-title">Terminée</div>
+                <div class="step-subtitle" v-if="step >= 3">Votre commande est prête ! 🎉</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order details -->
+        <div class="glass-card order-details">
+          <h3 class="details-title">Votre commande</h3>
+          <ul class="cocktails-list">
+            <li v-for="(item, idx) in groupedCocktails" :key="idx" class="cocktail-item">
+              <div class="item-left">
+                <span class="quantity-circle">{{ item.quantite }}</span>
+                <span class="item-name">{{ item.nom }}</span>
+              </div>
+              <div class="item-right">
+                <span class="size-circle">{{ item.taille }}</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
       </div>
     </div>
   </div>
@@ -55,11 +88,15 @@ const loading = ref(true)
 const error = ref('')
 let refreshInterval: number | undefined
 
-// On récupère l'ID passé dans l'URL par le routeur (ex: /tracking/5 => ID 5)
-const idCommande = Number(route.params.id)
+const idParam = route.params.id
+const idCommande = idParam ? Number(idParam) : null
 
-// Fonction qui interroge l'API
 const fetchCommande = async () => {
+  if (!idCommande) {
+    error.value = "Aucune commande en cours."
+    loading.value = false
+    return
+  }
   try {
     commande.value = await ClientService.getCommandeDetails(idCommande)
   } catch (e) {
@@ -71,100 +108,211 @@ const fetchCommande = async () => {
 }
 
 onMounted(() => {
-  // 1er chargement immédiat
   fetchCommande()
-
-  // Pour simuler du "temps réel" simplement, on rafraîchit toutes les 3 secondes.
   refreshInterval = window.setInterval(fetchCommande, 3000)
 })
 
-// Nettoyage les fuites de mémoire (memory leak) quand le client quitte la page
 onUnmounted(() => {
-  if (refreshInterval) {
-    clearInterval(refreshInterval)
-  }
+  if (refreshInterval) clearInterval(refreshInterval)
 })
 
-// --- LOGIQUE VISUELLE (Couleurs dynamiques selon le statut) ---
-
-const statusGlobalClass = computed(() => {
-  if (!commande.value) return ''
-  switch (commande.value.statutGlobal) {
-    case 'Commandée': return 'status-ordered'
-    case 'En cours de préparation': return 'status-preparing'
-    case 'Terminée': return 'status-ready'
-    default: return ''
-  }
-})
-
-const getBadgeClass = (statut: string) => {
-  switch (statut) {
-    case 'En attente': return 'badge-waiting'
-    case 'Préparation des Ingrédients': return 'badge-step1'
-    case 'Assemblage': return 'badge-step2'
-    case 'Dressage': return 'badge-step3'
-    case 'Terminée': return 'badge-ready'
-    default: return ''
-  }
+// Format time
+const formatTime = (dateString: string) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
+
+// Logic for step 1, 2, 3
+const step = computed(() => {
+  if (!commande.value) return 0
+  const s = commande.value.statutGlobal
+  if (s === 'Commandée') return 1
+  if (s === 'En cours de préparation') return 2
+  if (s === 'Terminée') return 3
+  return 1
+})
+
+const bgClass = computed(() => {
+  if (step.value === 1) return 'bg-step-1'
+  if (step.value === 2) return 'bg-step-2'
+  if (step.value === 3) return 'bg-step-3'
+  return 'bg-step-1'
+})
+
+// Group identical cocktails
+const groupedCocktails = computed(() => {
+  if (!commande.value || !commande.value.cocktailsCommandes) return []
+  const groups: Record<string, any> = {}
+  
+  commande.value.cocktailsCommandes.forEach(cc => {
+    const nom = cc.cocktail?.nom || 'Cocktail inconnu'
+    const taille = cc.taille?.libelle?.charAt(0) || 'S'
+    const key = `${nom}-${taille}`
+    
+    if (groups[key]) {
+      groups[key].quantite++
+    } else {
+      groups[key] = { nom, taille, quantite: 1 }
+    }
+  })
+  
+  return Object.values(groups)
+})
 </script>
 
 <style scoped>
+.tracking-wrapper {
+  position: absolute; /* absolute au lieu de fixed pour rester dans le cadre mobile */
+  top: 0;
+  left: 0;
+  right: 0;
+  min-height: 100%;
+  z-index: 10;
+  transition: background 1s ease;
+  font-family: 'Inter', sans-serif;
+  color: white;
+  overflow-y: auto;
+}
+
+/* Backgrounds adapting to state */
+.bg-step-1 {
+  background: linear-gradient(135deg, #8A2387, #E94057, #F27121);
+}
+.bg-step-2 {
+  background: linear-gradient(135deg, #4A00E0, #8E2DE2);
+}
+.bg-step-3 {
+  background: linear-gradient(135deg, #0ba360, #3cba92);
+}
+
 .tracking-page {
-  max-width: 600px;
+  max-width: 500px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 60px 20px 120px 20px;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
-.header h1 {
-  color: #2f3542;
-  font-size: 2rem;
-  margin: 0 0 10px 0;
+.header-subtitle {
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-bottom: 5px;
 }
 
-.header p {
-  color: #57606f;
-  font-weight: bold;
+.header-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0 0 5px 0;
+  letter-spacing: 1px;
 }
 
-.global-status-card {
-  padding: 20px;
-  border-radius: 12px;
-  text-align: center;
-  margin-bottom: 30px;
+.header-time {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* TIMELINE */
+.timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  margin-bottom: 35px;
+}
+.timeline-step:last-child {
+  margin-bottom: 0;
+}
+
+.step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  font-size: 0.9rem;
   color: white;
-  transition: background-color 0.5s ease;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.status-ordered {
-  background: #ffa502;
+.timeline-step.active .step-icon {
+  background: linear-gradient(135deg, #FF416C, #FF4B2B);
+  box-shadow: 0 0 10px rgba(255, 75, 43, 0.5);
 }
 
-/* Orange */
-.status-preparing {
-  background: #1e90ff;
+.step-icon.party {
+  font-size: 1.1rem;
 }
 
-/* Bleu */
-.status-ready {
-  background: #2ed573;
+.step-content {
+  margin-left: 20px;
+  padding-top: 5px;
 }
 
-/* Vert */
-
-.global-status-card h2 {
-  margin: 0 0 10px 0;
+.step-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  opacity: 0.6;
+  transition: opacity 0.3s;
 }
 
-h3 {
-  color: #2f3542;
-  margin-bottom: 15px;
+.timeline-step.active .step-title {
+  opacity: 1;
+}
+
+.step-subtitle {
+  font-size: 0.85rem;
+  color: #FFEAA7;
+  margin-top: 5px;
+  font-weight: 500;
+}
+
+/* Connecting Line */
+.timeline-line {
+  position: absolute;
+  top: 32px;
+  left: 15px;
+  width: 3px;
+  height: calc(100% + 3px);
+  background: rgba(255, 255, 255, 0.15);
+  z-index: 1;
+}
+
+.timeline-line.filled {
+  background: linear-gradient(to bottom, #FF4B2B, #FF416C);
+}
+
+/* ORDER DETAILS */
+.details-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  opacity: 0.9;
 }
 
 .cocktails-list {
@@ -177,65 +325,75 @@ h3 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  margin-bottom: 15px;
+}
+.cocktail-item:last-child {
+  margin-bottom: 0;
 }
 
-.status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
+.item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.quantity-circle, .size-circle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.quantity-circle {
+  background: rgba(255, 255, 255, 0.2);
   color: white;
 }
 
-/* Code couleur pour l'avancement de chaque verre */
-.badge-waiting {
-  background: #a4b0be;
+.size-circle {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFA07A;
+  border: 1px solid rgba(255, 160, 122, 0.3);
 }
 
-/* Gris */
-.badge-step1 {
-  background: #ff6b81;
+.item-name {
+  font-size: 1.05rem;
+  font-weight: 500;
 }
 
-/* Rose */
-.badge-step2 {
-  background: #70a1ff;
+/* REFRESH BTN */
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 30px auto 0 auto;
+  transition: all 0.2s ease;
 }
 
-/* Bleu clair */
-.badge-step3 {
-  background: #eccc68;
-  color: #2f3542;
+.btn-refresh:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
-/* Jaune */
-.badge-ready {
-  background: #2ed573;
+.refresh-icon {
+  font-size: 1.2rem;
 }
 
-/* Vert */
-
-.auto-refresh-notice {
+.loading, .error-msg {
   text-align: center;
-  margin-top: 30px;
-  font-size: 0.9rem;
-  color: #a4b0be;
-  font-style: italic;
-}
-
-.loading,
-.error-msg {
-  text-align: center;
-  padding: 40px;
+  padding: 50px 20px;
+  font-size: 1.2rem;
   font-weight: bold;
-}
-
-.error-msg {
-  color: #ff4757;
 }
 </style>

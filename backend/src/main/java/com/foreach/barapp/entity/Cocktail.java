@@ -22,6 +22,7 @@ public class Cocktail {
 
     private String nom;
     private String description;
+    private String image;
 
     // @ManyToOne indique que plusieurs cocktails peuvent appartenir à la même catégorie.
     @ManyToOne

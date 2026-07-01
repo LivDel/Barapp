@@ -1,7 +1,7 @@
 /**
  * Types TypeScript (Interfaces)
  * 
- * Explication soutenance : Ces interfaces garantissent que le Front-end s'attend
+ * Ces interfaces garantissent que le Front-end s'attend
  * exactement au même format de données que celui renvoyé par l'API Spring Boot.
  * C'est la force de TypeScript : s'assurer qu'on ne demande pas 'cocktail.title' 
  * si la BDD l'a appelé 'cocktail.nom'.
@@ -9,27 +9,43 @@
 
 export interface Categorie {
   idCategorie: number;
-  nom: string;
+  libelle: string;
 }
 
 export interface Taille {
   idTaille: number;
+  libelle: string;
+}
+
+export interface Ingredient {
+  idIngredient: number;
   nom: string;
+}
+
+export interface CocktailTaille {
+  id: {
+    idCocktail: number;
+    idTaille: number;
+  };
+  taille: Taille;
+  prix: number;
 }
 
 export interface Cocktail {
   idCocktail: number;
   nom: string;
-  recette: string;
-  illustration: string;
+  description: string;
+  image: string;
   categorie: Categorie;
+  prixTailles: CocktailTaille[];
+  ingredients?: Ingredient[];
 }
 
 // Ligne de commande : un verre spécifique dans une commande
 export interface CocktailCommande {
   idCocktailCommande: number;
   statutPreparation: string; // "En attente", "Préparation des Ingrédients", "Assemblage", "Dressage", "Terminée"
-  cocktail?: Cocktail; 
+  cocktail?: Cocktail;
   taille?: Taille;
 }
 
@@ -41,11 +57,16 @@ export interface Commande {
   cocktailsCommandes: CocktailCommande[]; // La liste magique qu'on a créée avec @OneToMany côté Java !
 }
 
-// Le format exact (DTO) attendu par notre API Java pour passer commande
 export interface CommandeRequestDto {
   numeroTable: number;
   cocktails: Array<{
     idCocktail: number;
     idTaille: number;
   }>;
+}
+
+export interface CartItem {
+  cocktail: Cocktail;
+  taille: Taille;
+  prix: number;
 }

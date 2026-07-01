@@ -17,8 +17,8 @@
 
       <ul class="cart-list">
         <!-- On itère sur le state global (store) pour afficher le contenu -->
-        <li v-for="(cocktail, index) in store.cart" :key="index" class="cart-item">
-          <span>🍹 {{ cocktail.nom }}</span>
+        <li v-for="(item, index) in store.cart" :key="index" class="cart-item">
+          <span>🍹 {{ item.cocktail.nom }} ({{ item.taille.libelle }}) - {{ item.prix.toFixed(2) }}€</span>
           <!-- On permet de retirer un article en passant son index dans le tableau -->
           <button @click="removeFromCart(index)" class="btn-remove" title="Retirer cet article">❌</button>
         </li>
@@ -57,20 +57,20 @@ const validerCommande = async () => {
 
   try {
     // 1. On fabrique le DTO attendu par Spring Boot
-    // On "map" notre panier front-end vers le modèle strict de l'API.
     const requestDto: CommandeRequestDto = {
       numeroTable: store.numeroTable,
-      cocktails: store.cart.map(c => ({
-        idCocktail: c.idCocktail,
-        idTaille: 1 // On met la taille Standard (ID 1) par défaut pour la démo
+      cocktails: store.cart.map(item => ({
+        idCocktail: item.cocktail.idCocktail,
+        idTaille: item.taille.idTaille
       }))
     }
 
     // 2. On envoie la requête POST !
     const commandeCree = await ClientService.lancerCommande(requestDto)
 
-    // 3. Succès : On vide le panier local et on redirige vers l'URL de suivi (ex: /tracking/5)
+    // 3. Succès : On vide le panier local et on redirige vers l'URL de suivi
     clearCart()
+    store.lastOrderId = commandeCree.idCommande
     router.push(`/tracking/${commandeCree.idCommande}`)
 
   } catch (error) {
@@ -86,7 +86,6 @@ const validerCommande = async () => {
 .cart-page {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
 }
 
 .header {
@@ -96,37 +95,39 @@ const validerCommande = async () => {
 .back-btn {
   background: none;
   border: none;
-  color: #57606f;
+  color: var(--muted-foreground);
   font-weight: bold;
   cursor: pointer;
   padding: 0;
   margin-bottom: 15px;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
 h1 {
-  color: #2f3542;
+  color: var(--foreground);
   font-size: 2rem;
   margin: 0;
 }
 
 .table-info {
-  background: #dfe4ea;
-  color: #2f3542;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--foreground);
   padding: 15px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-weight: bold;
   text-align: center;
   margin-bottom: 20px;
+  backdrop-filter: blur(10px);
 }
 
 .cart-list {
   list-style: none;
   padding: 0;
   margin: 0 0 30px 0;
-  border: 1px solid #f1f2f6;
-  border-radius: 8px;
-  background: white;
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
 }
 
 .cart-item {
@@ -134,7 +135,7 @@ h1 {
   justify-content: space-between;
   align-items: center;
   padding: 15px;
-  border-bottom: 1px solid #f1f2f6;
+  border-bottom: 1px solid var(--glass-border);
   font-size: 1.1rem;
 }
 
@@ -156,33 +157,32 @@ h1 {
 }
 
 .btn-primary {
-  background: #2ed573;
+  background: var(--grad-sunset);
   color: white;
   border: none;
   padding: 15px 30px;
-  border-radius: 8px;
+  border-radius: var(--radius);
   font-weight: bold;
   font-size: 1.1rem;
   cursor: pointer;
   width: 100%;
-  transition: background 0.2s;
-  box-shadow: 0 4px 6px rgba(46, 213, 115, 0.3);
+  transition: opacity 0.2s;
 }
 
 .btn-primary:hover {
-  background: #26de81;
+  opacity: 0.9;
 }
 
 .btn-primary:disabled {
-  background: #a4b0be;
+  background: var(--muted);
+  color: var(--muted-foreground);
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 .empty-cart {
   text-align: center;
   padding: 60px 0;
-  color: #747d8c;
+  color: var(--muted-foreground);
 }
 
 .empty-cart p {
@@ -191,7 +191,7 @@ h1 {
 }
 
 .error-msg {
-  color: #ff4757;
+  color: var(--destructive);
   text-align: center;
   margin-top: 15px;
   font-weight: bold;

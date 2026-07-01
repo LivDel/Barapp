@@ -48,39 +48,76 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.home-container {
+.home-page {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   justify-content: center;
-  height: 100vh;
-  padding: 20px;
-  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-  /* Joli fond dégradé */
-}
-
-.card {
-  background: white;
-  padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  align-items: center;
   text-align: center;
-  max-width: 400px;
+  height: 100%;
+  padding: 20px;
 }
 
-h1 {
-  color: #2f3542;
-  margin-bottom: 20px;
-  font-size: 1.8rem;
+.hero {
+  margin-bottom: 40px;
 }
 
-p {
-  color: #57606f;
-  font-size: 1.1rem;
-  line-height: 1.5;
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 10px;
+  color: var(--foreground);
 }
 
-.success-text {
-  color: #2ed573;
+.hero p {
+  font-size: 1.2rem;
+  color: var(--muted-foreground);
+}
+
+.table-input-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  background: var(--glass-bg);
+  padding: 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  width: 100%;
+  max-width: 300px;
+}
+
+.table-input-section label {
   font-weight: bold;
+  font-size: 1.1rem;
+  color: var(--foreground);
+}
+
+.table-input-section input {
+  padding: 10px;
+  font-size: 1.2rem;
+  text-align: center;
+  width: 100px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  outline: none;
+}
+
+.btn-start {
+  background: var(--grad-sunset);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn-start:hover {
+  transform: scale(1.05);
 }
 </style>
