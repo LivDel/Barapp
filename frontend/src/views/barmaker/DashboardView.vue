@@ -9,15 +9,15 @@
             <span class="subtitle">{{ commandes.length }} commandes en attente</span>
           </div>
         </div>
-        
-        <div class="barmaker-nav">
-          <button class="nav-btn active">Commandes</button>
-          <button class="nav-btn" @click="router.push('/barmaker/admin')">Carte</button>
-          <button @click="logout" class="btn-logout" aria-label="Déconnexion">
-            <span class="logout-icon">🚪</span>
-          </button>
-        </div>
+        <button @click="logout" class="btn-logout" aria-label="Déconnexion">
+          <span class="logout-icon">🚪</span>
+        </button>
       </div>
+
+      <nav class="barmaker-nav">
+        <button class="nav-btn active">Commandes</button>
+        <button class="nav-btn" @click="router.push('/barmaker/admin')">Carte</button>
+      </nav>
     </header>
 
     <div v-if="loading" class="loading">
@@ -223,8 +223,7 @@ const avancerStatut = async (idCocktailCommande: number) => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  flex-wrap: wrap;
-  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .header-left {
@@ -264,19 +263,43 @@ const avancerStatut = async (idCocktailCommande: number) => {
   margin-top: 2px;
 }
 
+.btn-logout {
+  background: rgba(255, 59, 92, 0.15);
+  border: 1px solid rgba(255, 59, 92, 0.3);
+  color: #ff4d6d;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: #ff4d6d;
+  color: white;
+}
+
+/* NAVIGATION TABS */
 .barmaker-nav {
   display: flex;
   gap: 8px;
-  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .nav-btn {
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex: 1;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
   border-radius: 12px;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--muted-foreground);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -285,21 +308,7 @@ const avancerStatut = async (idCocktailCommande: number) => {
 .nav-btn.active {
   background: var(--grad-sunset);
   color: white;
-  border-color: transparent;
-}
-
-.btn-logout {
-  background: rgba(255, 59, 92, 0.15);
-  border: 1px solid rgba(255, 59, 92, 0.3);
-  color: #ff4d6d;
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(255, 59, 92, 0.25);
 }
 
 /* HORIZONTAL SCROLL */
