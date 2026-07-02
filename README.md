@@ -28,9 +28,39 @@ Bienvenue sur le dépôt du projet **Le Bar'app**, une application moderne de ge
 
 ---
 
-## 🚀 Lancement Rapide (Localhost)
+## 🐳 Lancement avec Docker (Recommandé)
 
-Ce guide détaille comment lancer l'application en environnement local de développement. *(L'intégration avec Docker sera ajoutée prochainement).*
+Le projet est entièrement conteneurisé. C'est la méthode la plus simple pour lancer l'application sans avoir à installer Java, Node.js ou PostgreSQL sur votre machine.
+
+### Prérequis
+- **Docker** et **Docker Compose** installés sur votre machine.
+
+### Démarrage
+Ouvrez un terminal à la racine du projet (là où se trouve le fichier `docker-compose.yml`) et lancez :
+```bash
+docker-compose up -d --build
+```
+Cette commande va :
+1. Construire et lancer le **Backend Java** (API accessible sur le port `8080`).
+2. Construire et lancer le **Frontend Vue.js** servi par un serveur Nginx (accessible sur le port `80`).
+3. Démarrer une base de données **PostgreSQL** pré-configurée.
+
+*Note : Lors du premier lancement, le téléchargement des images de base et la compilation peuvent prendre quelques minutes.*
+
+### Accès
+- **Application Web (Client & Barman)** : [http://localhost](http://localhost)
+- **API Backend** : [http://localhost:8080](http://localhost:8080)
+
+Pour arrêter proprement l'application :
+```bash
+docker-compose down
+```
+
+---
+
+## 💻 Lancement Manuel (Développement Local)
+
+Ce guide détaille comment lancer l'application sans Docker, pour le développement.
 
 ### 1. Prérequis
 

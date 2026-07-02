@@ -1,5 +1,4 @@
-# Version de syntaxe de Docker Compose
-version: '3.8'
+# L'attribut 'version' est obsolète dans les versions récentes de Docker Compose
 
 # Déclaration de tous nos conteneurs (services)
 services:
