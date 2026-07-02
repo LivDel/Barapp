@@ -70,18 +70,33 @@ public class MenuService {
      */
     @Transactional
     public Cocktail createCocktail(Cocktail cocktail) {
-        // 1. On sauvegarde d'abord le cocktail (sans les prix) pour qu'il obtienne son ID généré par PostgreSQL
-        Cocktail savedCocktail = cocktailRepository.save(cocktail);
-        
-        // 2. S'il y a des prix renseignés pour différentes tailles, on les relie au cocktail sauvegardé
+        // 1. Re-attacher la Catégorie au contexte de persistance d'Hibernate
+        if (cocktail.getCategorie() != null && cocktail.getCategorie().getIdCategorie() != null) {
+            cocktail.setCategorie(categorieRepository.findById(cocktail.getCategorie().getIdCategorie()).orElse(null));
+        }
+
+        // 2. Re-attacher les Ingrédients
+        if (cocktail.getIngredients() != null) {
+            java.util.List<Ingredient> attachedIngredients = new java.util.ArrayList<>();
+            for (Ingredient ing : cocktail.getIngredients()) {
+                if (ing.getIdIngredient() != null) {
+                    ingredientRepository.findById(ing.getIdIngredient()).ifPresent(attachedIngredients::add);
+                }
+            }
+            cocktail.setIngredients(attachedIngredients);
+        }
+
+        // 3. Re-attacher les Tailles et lier le parent
         if (cocktail.getPrixTailles() != null && !cocktail.getPrixTailles().isEmpty()) {
             for (CocktailTaille prixTaille : cocktail.getPrixTailles()) {
-                // On attache le cocktail manuellement pour la relation bidirectionnelle
-                prixTaille.setCocktail(savedCocktail); 
-                // Sauvegarde de l'entité de jointure avec le prix
-                cocktailTailleRepository.save(prixTaille);
+                prixTaille.setCocktail(cocktail); 
+                if (prixTaille.getTaille() != null && prixTaille.getTaille().getIdTaille() != null) {
+                    tailleRepository.findById(prixTaille.getTaille().getIdTaille()).ifPresent(prixTaille::setTaille);
+                }
             }
         }
-        return savedCocktail;
+        
+        // 4. Sauvegarder
+        return cocktailRepository.save(cocktail);
     }
 }
